@@ -24,6 +24,15 @@ c = Const
 (+.) :: Expr -> Expr -> Expr
 (+.) = Plus
 
+fst' :: Expr -> Expr
+fst' = Fst
+
+snd':: Expr -> Expr
+snd' = Snd
+
+(**.) :: Expr -> Expr -> Expr
+(**.) = Pair
+
 v :: VarName -> Expr
 v = Var
 
@@ -37,9 +46,12 @@ instance LongArrow (OpName, VarName, VarName) Expr OpHandler where
 instance LongArrow VarName Expr (VarName, Expr) where
   (-->) = (,)
 
-withHandler :: (VarName, Expr) -> [OpHandler] -> Expr -> Expr
-withHandler (pureName, pureBody) hOps hScope =
-  Handle{ hPure = PureHandler{ pureName, pureBody }, hOps, hScope }
+withHandler :: (VarName, Expr) -> [OpHandler] -> EffTag -> Expr -> Expr
+withHandler (pureName, pureBody) hOps tag hScope =
+  Handle{tag = tag, hPure = PureHandler{ pureName, pureBody }, hOps, hScope }
+
+embed :: Expr -> Expr -> Expr
+embed = Embed
 
 instance KnownSymbol name => IsLabel name String where
   fromLabel = symbolVal $ Proxy @name

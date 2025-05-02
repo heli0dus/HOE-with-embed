@@ -4,6 +4,7 @@ import Text.PrettyPrint.GenericPretty
 
 type VarName = String
 type OpName = String
+type EffTag = String
 
 data Expr
   = Const Int
@@ -14,11 +15,16 @@ data Expr
   | Pair Expr Expr
   | Fst Expr
   | Snd Expr
-  | Do OpName Expr
+  | Do EffTag OpName Expr
   | Handle
-    { hPure :: PureHandler
+    { tag :: EffTag
+    , hPure :: PureHandler
     , hOps :: [OpHandler]
     , hScope :: Expr
+    }
+  | Embed
+    { comp :: Expr
+    , kont :: Expr
     }
   deriving Eq
 

@@ -11,12 +11,12 @@ withStdLib =
   (#plus =. Lam #x $ Lam #y $ #x +. #y) .
   (#sum =. Lam #xs $ #xs :@ #plus :@ c 0) .
   (#inl =. Lam #x $ Lam #f $ Lam #g $ #f :@ #x) .
-  (#inr =. Lam #y $ Lam #f $ Lam #g $ #g :@ #x) .
+  (#inr =. Lam #x $ Lam #f $ Lam #g $ #g :@ #x) .
   (#case =. Lam #variant $ Lam #f $ Lam #g $ #variant :@ #f :@ #g) .
   (#true =. Lam #x $ Lam #y #x) .
   (#false =. Lam #x $ Lam #y #y) .
   (#if =. Lam #x $ #x) .
-  (#fix =. Lam #f $ Lam #x (#f :@ (#x :@ #x)) :@ Lam #x (#f :@ (#x :@ #x)))
+  (#fix =. Lam #f $ Lam #x (#f :@ (Lam #z $ (#x :@ #x) :@ #z)) :@ Lam #x (#f :@ (Lam #z ((#x :@ #x) :@ #z))))
 
 withState :: OpName -> Expr -> Expr -> Expr
 withState name ini scope =
@@ -25,14 +25,15 @@ withState name ini scope =
     [ ("get(" <> name <> ")", #_, #k) --> Lam #s $ #k :@ #s :@ #s
     , ("put(" <> name <> ")", #s', #k) --> Lam #s $ #k :@ #s :@ #s'
     ]
+    #state
     scope
   :@ ini
 
 get :: String -> Expr
-get name = Do ("get(" <> name <> ")") (c 0)
+get name = Do #state ("get(" <> name <> ")") (c 0)
 
 put :: String -> Expr -> Expr
-put name = Do ("put(" <> name <> ")")
+put name = Do #state ("put(" <> name <> ")")
 
 thunk :: Expr -> Expr
 thunk = Lam "_"
@@ -40,8 +41,8 @@ thunk = Lam "_"
 force :: Expr -> Expr
 force = (:@ unit)
 
-do' :: OpName -> Expr
-do' name = Do name unit
+do' :: OpName -> EffTag -> Expr
+do' tag name  = Do tag name unit
 
 unit :: Expr
 unit = c 0

@@ -27,12 +27,14 @@ data Frame
   | RPair Value
   | KFst
   | KSnd
-  | KDo OpName
+  | KDo EffTag OpName
   | KHandle
-    { hPure :: PureHandler
+    { tag:: EffTag
+    , hPure :: PureHandler
     , hOps :: [OpHandler]
     , hCtx :: Context
     }
+  | KEmbed Expr
   | EndScope Context
   deriving Eq
 
@@ -47,12 +49,12 @@ data Value
 
 evalE :: HasCallStack => Context -> Expr -> K -> Value
 evalE !ctx !expr !k =
-  -- trace (
-  --   replicate 5 '-' <> " " <> "evalE" <> " " <> replicate 60 '-' <>
-  --   "\nEXPR = " <> show expr <>
-  --   "\nK = " <> show k <>
-  --   "\nCTX = " <> show ctx
-  -- ) $
+  trace (
+    replicate 5 '-' <> " " <> "evalE" <> " " <> replicate 60 '-' <>
+    "\nEXPR = " <> show expr -- <>
+    -- "\nK = " <> show k -- <>
+    -- "\nCTX = " <> show ctx
+  ) $
   case expr of
     Const value -> evalK ctx k (Number value)
     Plus lhs rhs -> evalE ctx lhs (LPlus rhs : k)
@@ -65,17 +67,18 @@ evalE !ctx !expr !k =
     Pair l r -> evalE ctx l (LPair r : k)
     Fst expr -> evalE ctx expr (KFst : k)
     Snd expr -> evalE ctx expr (KSnd : k)
-    Do targetOpName arg -> evalE ctx arg (KDo targetOpName : k)
-    Handle{ hPure, hOps, hScope } -> evalE ctx hScope (KHandle { hCtx = ctx, hPure, hOps } : k)
+    Do tag targetOpName arg -> evalE ctx arg (KDo tag targetOpName : k)
+    Handle{ tag, hPure, hOps, hScope } -> evalE ctx hScope (KHandle { tag = tag, hCtx = ctx, hPure, hOps } : k)
+    Embed{ comp, kont } -> evalE ctx kont (KEmbed comp : k)
 
 evalK :: HasCallStack => Context -> K -> Value -> Value
 evalK !ctx !k !value =
-  -- trace (
-  --   replicate 5 '-' <> " " <> "evalK" <> " " <> replicate 60 '-' <>
-  --   "\nVALUE = " <> show value <>
-  --   "\nK = " <> show k <>
-  --   "\nCTX = " <> show ctx
-  -- ) $
+  trace (
+    replicate 5 '-' <> " " <> "evalK" <> " " <> replicate 60 '-' <>
+    "\nVALUE = " <> show value -- <>
+    -- "\nK = " <> show k <>
+    -- "\nCTX = " <> show ctx
+  ) $
   case k of
     [] -> value
     LPlus rhs : k -> evalE ctx rhs (RPlus value : k)
@@ -95,14 +98,17 @@ evalK !ctx !k !value =
     KSnd : k -> case value of
       PairValue _ r -> evalK ctx k r
       other -> error $ "Expected pair, got " <> show other
-    KDo targetOpName : k ->
-      let (OpHandler{ paramName, kName, opBody }, hCtx, kHandler, kTop) = splitK targetOpName k in
+    KDo tag targetOpName : k ->
+      let (OpHandler{ paramName, kName, opBody }, hCtx, kHandler, kTop) = splitKTag tag targetOpName k in
       let opK = Continuation { kBody = kTop, kCtx = ctx } in
       let ctx' = Map.insert paramName value $ Map.insert kName opK hCtx in
       evalE ctx' opBody kHandler
     KHandle{ hPure = PureHandler{ pureName, pureBody } } : k ->
       let ctx' = Map.insert pureName value ctx in
       evalE ctx' pureBody (EndScope ctx : k)
+    KEmbed comp : k -> case value of
+        Continuation{kBody, kCtx} -> evalE ctx comp (EndScope kCtx : kBody ++ EndScope ctx : k)
+        other -> error $ "Expected continuation, got " <> show other
     EndScope ctx' : k -> evalK ctx' k value
   where
     unwrapNumber :: HasCallStack => Value -> Int
@@ -117,6 +123,14 @@ evalK !ctx !k !value =
         | Just foundHandler <- find (\OpHandler{ opName } -> opName == targetOpName) hOps ->
           (foundHandler, hCtx, k, [frame])
       frame : k -> (frame :) <$> splitK targetOpName k
+    
+    splitKTag :: HasCallStack => EffTag -> OpName -> K -> (OpHandler, Context, K, K)
+    splitKTag targetTag targetOpName= \case
+      [] -> error $ "No handler for " <> targetTag <> " and " <> targetOpName <>" found"
+      frame@KHandle{tag, hOps, hCtx} : k
+        | Just foundHandler <- find (\OpHandler{opName} -> tag == targetTag && opName == targetOpName) hOps ->
+          (foundHandler, hCtx, k, [frame])
+      frame : k -> (frame :) <$> splitKTag targetTag targetOpName k
 
 eval :: HasCallStack => Expr -> Value
 eval expr = evalE Map.empty expr []
