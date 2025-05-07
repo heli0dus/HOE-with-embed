@@ -16,7 +16,15 @@ withStdLib =
   (#true =. Lam #x $ Lam #y #x) .
   (#false =. Lam #x $ Lam #y #y) .
   (#if =. Lam #x $ #x) .
-  (#fix =. Lam #f $ Lam #x (#f :@ (Lam #z $ (#x :@ #x) :@ #z)) :@ Lam #x (#f :@ (Lam #z ((#x :@ #x) :@ #z))))
+  (#fix =. Lam #f $ Lam #x (#f :@ Lam #z ((#x :@ #x) :@ #z)) :@ Lam #x (#f :@ Lam #z ((#x :@ #x) :@ #z))) .
+  (#listSplit =. Lam #xs $ #xs :@ Lam #x (Lam #xs' $ #case :@ Fst #xs' :@ thunk (Pair (#inr :@ #x) #nil) :@ Lam #val (Pair (#inr :@ #x) (#cons :@ #val :@ Snd #xs'))) :@ Pair (#inl :@ unit) #nil) .
+  (#listSplitLast =. Lam #xs $ Lam #res  (Snd #res) :@
+    (#xs :@ Lam #elem (Lam #pr $ #if :@ Fst #pr :@
+        Pair #true (Pair (Fst $ Snd #pr ) (#cons :@ #elem :@ Snd (Snd #pr)))
+        :@ Pair #true (Pair #elem (Snd (Snd #pr))))
+      :@ Pair #false (Pair unit #nil) )) .
+  (#listIsEmpty =. Lam #xs $ #xs :@ thunk (thunk #false) :@ #true)
+
 
 withState :: OpName -> Expr -> Expr -> Expr
 withState name ini scope =

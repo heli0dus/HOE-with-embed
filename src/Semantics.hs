@@ -49,12 +49,12 @@ data Value
 
 evalE :: HasCallStack => Context -> Expr -> K -> Value
 evalE !ctx !expr !k =
-  trace (
-    replicate 5 '-' <> " " <> "evalE" <> " " <> replicate 60 '-' <>
-    "\nEXPR = " <> show expr -- <>
-    -- "\nK = " <> show k -- <>
-    -- "\nCTX = " <> show ctx
-  ) $
+  -- trace (
+  --   replicate 5 '-' <> " " <> "evalE" <> " " <> replicate 60 '-' <>
+  --   "\nEXPR = " <> show expr -- <>
+  --   -- "\nK = " <> show k -- <>
+  --   -- "\nCTX = " <> show ctx
+  -- ) $
   case expr of
     Const value -> evalK ctx k (Number value)
     Plus lhs rhs -> evalE ctx lhs (LPlus rhs : k)
@@ -73,12 +73,12 @@ evalE !ctx !expr !k =
 
 evalK :: HasCallStack => Context -> K -> Value -> Value
 evalK !ctx !k !value =
-  trace (
-    replicate 5 '-' <> " " <> "evalK" <> " " <> replicate 60 '-' <>
-    "\nVALUE = " <> show value -- <>
-    -- "\nK = " <> show k <>
-    -- "\nCTX = " <> show ctx
-  ) $
+  -- trace (
+  --   replicate 5 '-' <> " " <> "evalK" <> " " <> replicate 60 '-' <>
+  --   "\nVALUE = " <> show value -- <>
+  --   -- "\nK = " <> show k <>
+  --   -- "\nCTX = " <> show ctx
+  -- ) $
   case k of
     [] -> value
     LPlus rhs : k -> evalE ctx rhs (RPlus value : k)

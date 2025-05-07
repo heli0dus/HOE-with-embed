@@ -4,7 +4,7 @@ import Syntax
 import Embedding
 import Stdlib
 import Semantics
-import Examples (catchExample, transactionalCatch, transCatchFix, transCatchNoFix)
+import Examples (catchExample, transactionalCatch, transCatchFix, transCatchNoFix, catchExample2, embedTest, transCatchNoFix2, embedTest2, embedTest3, embedTest4, embedTest6, concurrentExample, concurrentExample2)
 
 main :: IO ()
 main = runTestTTAndExit $ TestList
@@ -91,7 +91,19 @@ main = runTestTTAndExit $ TestList
   --     (#tmp =. Pair (c 1) (c 10)) $
   --     Fst #tmp +. Snd #tmp
   -- , TestCase $ assertEqual "catch" (Number 42) $ eval catchExample
+  -- TestCase $ assertEqual "catch" (Number 42) $ eval catchExample2
+  -- , TestCase $ assertEqual "embed" (Number 2) $ eval embedTest
+  -- , TestCase $ assertEqual "embed" (Number 1) $ eval embedTest2
+  -- , TestCase $ assertEqual "embed" (Number 5) $ eval embedTest3
+  -- , TestCase $ assertEqual "embed" (Number 2) $ eval embedTest4
+  TestCase $ assertEqual "embed" (Number 3) $ eval embedTest6
+
+
+
   -- , TestCase $ assertEqual "transactional catch" (Number 42) $ eval transactionalCatch
-  -- , TestCase $ assertEqual "transactional catch" (Number 42) $ eval transCatchFix
-    TestCase $ assertEqual "transactional catch" (Number 42) $ eval transCatchNoFix
+  , TestCase $ assertEqual "transactional catch" (Number 42) $ eval transCatchFix
+  ,  TestCase $ assertEqual "transactional catch" (Number 42) $ eval transCatchNoFix
+  ,  TestCase $ assertEqual "transactional catch" (Number 42) $ eval transCatchNoFix2
+  ,  TestCase $ assertEqual "concurrent actors" (Number 2) $ eval concurrentExample
+  ,  TestCase $ assertEqual "concurrent global" (Number 3) $ eval concurrentExample2
   ]
