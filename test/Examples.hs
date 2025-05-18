@@ -118,7 +118,7 @@ catchExample2 :: Expr
 catchExample2 =
     withStdLib $
     #case :@
-    (withHandler
+    withHandler
         (#x --> #inr :@ #x)
         [ ("catch", #args, #k) --> Embed (
             withHandler
@@ -128,11 +128,10 @@ catchExample2 =
                 Fst #args :@ unit
          ) #k
          , ("throw", #e, #k) --> #inl :@ #e]
-        #catch $
-    catch (thunk $ cthrow (c 1)) (Lam #e (c 41 +. #e)))
+        #catch (catch (thunk $ cthrow (c 1)) (Lam #e (c 41 +. #e)))
     :@ Lam #z (c 0) :@ Lam #z #z
 
--- Не рабоатет без рекурсивных определений
+-- Не работает без рекурсивных определений
 transactionalCatch :: Expr
 transactionalCatch =
     withStdLib $
@@ -244,7 +243,7 @@ withSchedule scope =
                         (put #taskQueue (#cons :@ #k :@ Snd #nq) $$
                          Fst #nq :@ unit)
                      )
-            , ("finish", #_, #k) --> 
+            , ("finish", #_, #k) -->
                 (#q =. get #taskQueue)
                 (#if :@ (#listIsEmpty :@ #q)
                     :@ unit
@@ -260,27 +259,27 @@ fork :: Expr -> Expr
 fork = Do #schedule "fork"
 
 concurrentExample :: Expr
-concurrentExample = 
+concurrentExample =
     withStdLib $
     withSchedule $
     withState #x (c 0) $
         (#z =. get #x)
         (put #x (#z +. c 1) $$
-        fork (thunk $ 
-            (#z2 =. get #x) 
+        fork (thunk $
+            (#z2 =. get #x)
             (put #x (#z2 +. c 1))) $$
         put #x (get #x +. c 1) $$
         get #x )
 
 concurrentExample2 :: Expr
-concurrentExample2 = 
+concurrentExample2 =
     withStdLib $
     withState #x (c 0) $
     withSchedule $
         (#z =. get #x)
         (put #x (#z +. c 1) $$
-        fork (thunk $ 
-            (#z2 =. get #x) 
+        fork (thunk $
+            (#z2 =. get #x)
             (put #x (#z2 +. c 1))) $$
         put #x (get #x +. c 1) $$
         get #x )
